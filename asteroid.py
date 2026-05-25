@@ -7,9 +7,16 @@ import random
 class Asteroid(CircleShape):
     def __init__(self, x, y, radius):
         super().__init__(x, y, radius)
+        num_points = 12
+        self._offsets = [random.uniform(0.7, 1.0) for _ in range(num_points)]
+        self._angles = [i * (360 / num_points) for i in range(num_points)]
 
     def draw(self, screen):
-        pygame.draw.circle(screen, "purple", self.position, self.radius, LINE_WIDTH)
+        points = [
+            self.position + pygame.Vector2(0, -self.radius * r).rotate(a)
+            for r, a in zip(self._offsets, self._angles)
+        ]
+        pygame.draw.polygon(screen, "purple", points, LINE_WIDTH)
 
     def update(self, dt):
         self.position += self.velocity * dt

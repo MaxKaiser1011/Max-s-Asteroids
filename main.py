@@ -1,4 +1,5 @@
 import math
+import os
 import random
 import sys
 
@@ -13,6 +14,19 @@ import pygame
 from shot import Shot
 
 player = None
+
+_HIGH_SCORE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "highscore.txt")
+
+def _load_high_score():
+    try:
+        with open(_HIGH_SCORE_PATH) as f:
+            return int(f.read().strip())
+    except (FileNotFoundError, ValueError):
+        return 0
+
+def _save_high_score(score):
+    with open(_HIGH_SCORE_PATH, "w") as f:
+        f.write(str(score))
 
 def _draw_stars(screen, stars, t):
     for sx, sy, sr, sb, sp in stars:
@@ -43,6 +57,7 @@ def main():
     clock = pygame.time.Clock()
     font = pygame.font.SysFont(None, 36)
     score = 0
+    high_score = _load_high_score()
     score_timer = 0.0
     star_time = 0.0
     stars = [
@@ -62,9 +77,9 @@ def main():
         log_state()
         star_time += dt
         score_timer += dt
-        if score_timer >= 1:
-            score += 1
-            score_timer -= 1
+        if score_timer >= 5:
+            score += 50
+            score_timer -= 5
         updatable.update(dt)
         for asteroid in asteroids:
             if asteroid.collides_with(player) == True:
@@ -82,7 +97,10 @@ def main():
                     for i in drawable:
                         i.draw(screen)
                     screen.blit(font.render(f"Score: {score}", True, "white"), (10, 10))
+                    screen.blit(font.render(f"Best:  {high_score}", True, "yellow"), (10, 40))
                     pygame.display.flip()
+                high_score = max(high_score, score)
+                _save_high_score(high_score)
                 print("Game over!")
                 sys.exit()
         for asteroid in asteroids:
@@ -90,17 +108,19 @@ def main():
                 if asteroid.collides_with(shot) == True:
                     log_event("asteroid_shot")
                     Explosion(asteroid.position.x, asteroid.position.y, asteroid.radius)
-                    score += 1
+                    score += 10
                     shot.kill()
                     asteroid.split()
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
+                _save_high_score(max(high_score, score))
                 return
         screen.fill("black")
         _draw_stars(screen, stars, star_time)
         for i in drawable:
             i.draw(screen)
         screen.blit(font.render(f"Score: {score}", True, "white"), (10, 10))
+        screen.blit(font.render(f"Best:  {high_score}", True, "yellow"), (10, 40))
         pygame.display.flip()
         ms = clock.tick(60)
         dt = ms/1000
